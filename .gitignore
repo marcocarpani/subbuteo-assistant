@@ -1,0 +1,23 @@
+# Go
+backend/server
+backend/*.exe
+
+# Node
+frontend/node_modules/
+frontend/dist/
+
+# Env
+.env
+.env.local
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Il PDF è incluso nel repo (necessario per go:embed su Railway)
+# Se non vuoi committarlo, decommenta la riga sotto e usalo solo in locale
+# backend/regolamento.pdf
