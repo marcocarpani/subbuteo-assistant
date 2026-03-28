@@ -3,7 +3,7 @@ import vue from '@vitejs/plugin-vue'
 import { VitePWA } from 'vite-plugin-pwa'
 
 export default defineConfig({
-  base: '/subbuteo-assistant/', // GitHub Pages: marcocarpani.github.io/subbuteo-assistant
+  base: '/', // Netlify serve dalla root
   plugins: [
     vue(),
     VitePWA({
