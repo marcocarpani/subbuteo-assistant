@@ -11,7 +11,7 @@ import (
 	"github.com/marcocarpani/subbuteo-assistant/rag"
 )
 
-const geminiURL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+const geminiURL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-3.1-flash-lite-preview:generateContent"
 
 const systemPrompt = `Sei un esperto arbitro e consulente del regolamento Old Subbuteo (versione 2.5, luglio 2013).
 Rispondi SEMPRE in italiano, in modo chiaro, preciso e conciso.
@@ -21,9 +21,9 @@ Cita il numero di regola quando possibile (es. "Secondo la regola 8.1...").
 Non inventare regole che non esistono nel documento.`
 
 type geminiRequest struct {
-	Contents         []content        `json:"contents"`
-	SystemInstruction systemInstruct  `json:"system_instruction"`
-	GenerationConfig  generationCfg   `json:"generation_config"`
+	Contents          []content      `json:"contents"`
+	SystemInstruction systemInstruct `json:"system_instruction"`
+	GenerationConfig  generationCfg  `json:"generation_config"`
 }
 
 type systemInstruct struct {
