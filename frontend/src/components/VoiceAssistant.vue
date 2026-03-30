@@ -19,11 +19,11 @@
 
       <nav class="chapter-list">
         <button
-          v-for="ch in chapters"
-          :key="ch.id"
-          class="chapter-item"
-          :class="{ active: activeChapter === ch.id }"
-          @click="selectChapter(ch)"
+            v-for="ch in chapters"
+            :key="ch.id"
+            class="chapter-item"
+            :class="{ active: activeChapter === ch.id }"
+            @click="selectChapter(ch)"
         >
           <span class="chapter-num">{{ ch.id }}</span>
           <div class="chapter-info">
@@ -68,9 +68,9 @@
 
             <!-- Risposta renderizzata con link cliccabili ai capitoli -->
             <div
-              class="answer-body markdown-content"
-              v-html="renderedAnswer"
-              @click="handleAnswerClick"
+                class="answer-body markdown-content"
+                v-html="renderedAnswer"
+                @click="handleAnswerClick"
             ></div>
 
             <!-- Controlli TTS -->
@@ -85,11 +85,11 @@
                 <span class="speed-label">Velocità</span>
                 <div class="speed-buttons">
                   <button
-                    v-for="s in speedOptions"
-                    :key="s.value"
-                    class="speed-btn"
-                    :class="{ active: ttsSpeed === s.value }"
-                    @click="setSpeed(s.value)"
+                      v-for="s in speedOptions"
+                      :key="s.value"
+                      class="speed-btn"
+                      :class="{ active: ttsSpeed === s.value }"
+                      @click="setSpeed(s.value)"
                   >{{ s.label }}</button>
                 </div>
               </div>
@@ -132,10 +132,10 @@
 
       <footer>
         <button
-          class="mic-btn"
-          :class="{ listening: isListening, loading: isLoading }"
-          @click="handleMicClick"
-          :disabled="isLoading"
+            class="mic-btn"
+            :class="{ listening: isListening, loading: isLoading }"
+            @click="handleMicClick"
+            :disabled="isLoading"
         >
           <div class="mic-rings" v-if="isListening">
             <span></span><span></span>
@@ -221,16 +221,35 @@ function buildRenderedAnswer(text) {
   // 1. Marked → HTML
   let html = marked.parse(text)
 
-  // 2. Inietta link per riferimenti espliciti "reg. X.Y" o "regola X"
-  //    pattern: reg. 8.1 / regola 8 / capitolo 8 / art. 8
+  // 2. Pass 1 — riferimenti con prefisso + tutti i numeri X.Y che seguono
+  //    es: "reg. 1.2 e 2.3" → linka sia "1.2" che "2.3"
   html = html.replace(
-    /\b(reg\.|regola|capitolo|art\.)\s*(\d{1,2})(?:\.\d+)*/gi,
-    (match, prefix, num) => {
-      const chapId = parseInt(num)
-      const ch = chapters.find(c => c.id === chapId)
-      if (!ch) return match
-      return `<a href="#" class="chapter-link" data-chapter="${chapId}" title="${ch.icon} ${ch.title}">${match}</a>`
-    }
+      /\b(reg\.|regola|capitolo|art\.)\s*((?:\d{1,2}(?:\.\d+)*\s*(?:[,e]\s*)?)+)/gi,
+      (match, prefix, nums) => {
+        const linkedNums = nums.replace(
+            /\b(\d{1,2})(?:\.\d+)*/g,
+            (numMatch) => {
+              const chapId = parseInt(numMatch)
+              const ch = chapters.find(c => c.id === chapId)
+              if (!ch) return numMatch
+              return `<a href="#" class="chapter-link" data-chapter="${chapId}" title="${ch.icon} ${ch.title}">${numMatch}</a>`
+            }
+        )
+        return prefix + ' ' + linkedNums
+      }
+  )
+
+  // 3. Pass 2 — numeri nudi X.Y non ancora linkati
+  //    Preserva i <a> già creati, linka solo il testo esterno
+  html = html.replace(
+      /(<a\b[^>]*>[\s\S]*?<\/a>)|(\b(\d{1,2})\.(\d+)\b)/g,
+      (match, alreadyLinked, bare, chap) => {
+        if (alreadyLinked) return alreadyLinked
+        const chapId = parseInt(chap)
+        const ch = chapters.find(c => c.id === chapId)
+        if (!ch) return match
+        return `<a href="#" class="chapter-link" data-chapter="${chapId}" title="${ch.icon} ${ch.title}">${match}</a>`
+      }
   )
 
   return html
@@ -251,33 +270,33 @@ function handleAnswerClick(e) {
 // ── TTS plain text con punteggiatura migliorata ───────────────
 function toSpeakable(text) {
   return text
-    // Rimuovi markdown
-    .replace(/#{1,6}\s?(.+)/g, '$1. ')
-    .replace(/\*\*(.+?)\*\*/g, '$1')
-    .replace(/\*(.+?)\*/g, '$1')
-    .replace(/^\s*[-*•]\s+(.+)/gm, '$1. ')
-    .replace(/^\s*(\d+)\.\s+(.+)/gm, 'Punto $1: $2. ')
-    .replace(/`(.+?)`/g, '$1')
-    .replace(/_{1,2}(.+?)_{1,2}/g, '$1')
-    .replace(/\[(.+?)\]\(.+?\)/g, '$1')
-    .replace(/>\s?(.+)/g, '$1. ')
-    .replace(/---+/g, '. ')
-    // Migliora punteggiatura per naturalezza
-    .replace(/\breg\.\s*(\d+)/gi, 'regola $1')    // "reg. 8" → "regola 8"
-    .replace(/\bart\.\s*(\d+)/gi, 'articolo $1')
-    .replace(/\bes\.\s*/gi, 'ad esempio ')
-    .replace(/\bcfr\.\s*/gi, 'confronta ')
-    .replace(/\bvedi\s+reg\./gi, 'vedi regola ')
-    // Assicura pausa dopo numeri di regola: "8.1.2" → "8 punto 1 punto 2"
-    .replace(/\b(\d+)\.(\d+)(?:\.(\d+))?\b/g, (_, a, b, c) =>
-      c ? `${a} punto ${b} punto ${c}` : `${a} punto ${b}`
-    )
-    // Pulizia finale
-    .replace(/\n{2,}/g, '. ')
-    .replace(/\n/g, ', ')
-    .replace(/\s{2,}/g, ' ')
-    .replace(/\.\s*\./g, '.')
-    .trim()
+      // Rimuovi markdown
+      .replace(/#{1,6}\s?(.+)/g, '$1. ')
+      .replace(/\*\*(.+?)\*\*/g, '$1')
+      .replace(/\*(.+?)\*/g, '$1')
+      .replace(/^\s*[-*•]\s+(.+)/gm, '$1. ')
+      .replace(/^\s*(\d+)\.\s+(.+)/gm, 'Punto $1: $2. ')
+      .replace(/`(.+?)`/g, '$1')
+      .replace(/_{1,2}(.+?)_{1,2}/g, '$1')
+      .replace(/\[(.+?)\]\(.+?\)/g, '$1')
+      .replace(/>\s?(.+)/g, '$1. ')
+      .replace(/---+/g, '. ')
+      // Migliora punteggiatura per naturalezza
+      .replace(/\breg\.\s*(\d+)/gi, 'regola $1')    // "reg. 8" → "regola 8"
+      .replace(/\bart\.\s*(\d+)/gi, 'articolo $1')
+      .replace(/\bes\.\s*/gi, 'ad esempio ')
+      .replace(/\bcfr\.\s*/gi, 'confronta ')
+      .replace(/\bvedi\s+reg\./gi, 'vedi regola ')
+      // Assicura pausa dopo numeri di regola: "8.1.2" → "8 punto 1 punto 2"
+      .replace(/\b(\d+)\.(\d+)(?:\.(\d+))?\b/g, (_, a, b, c) =>
+          c ? `${a} punto ${b} punto ${c}` : `${a} punto ${b}`
+      )
+      // Pulizia finale
+      .replace(/\n{2,}/g, '. ')
+      .replace(/\n/g, ', ')
+      .replace(/\s{2,}/g, ' ')
+      .replace(/\.\s*\./g, '.')
+      .trim()
 }
 
 // ── Speed control ─────────────────────────────────────────────
@@ -303,9 +322,9 @@ async function selectChapter(ch) {
   menuOpen.value      = false
   activeChapter.value = ch.id
   await askBackend(
-    `Spiega in dettaglio le regole del capitolo "${ch.title}" del regolamento Old Subbuteo. ` +
-    `Includi tutte le regole numerate (es. 8.1, 8.2...), le note importanti e le casistiche principali. ` +
-    `Cita sempre il numero di regola preciso.`
+      `Spiega in dettaglio le regole del capitolo "${ch.title}" del regolamento Old Subbuteo. ` +
+      `Includi tutte le regole numerate (es. 8.1, 8.2...), le note importanti e le casistiche principali. ` +
+      `Cita sempre il numero di regola preciso.`
   )
   lastQuery.value = `${ch.icon} Capitolo ${ch.id}: ${ch.title}`
 }
